@@ -16,15 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package me.zford.jobs.bukkit.actions;
+package me.zford.jobs.util;
 
-import me.zford.jobs.container.ActionInfo;
-import me.zford.jobs.container.ActionType;
+import java.nio.ByteBuffer;
+import java.util.UUID;
 
-import org.bukkit.block.Block;
+public class UUIDUtil {
+    public static byte[] toBytes(UUID uuid) {
+        ByteBuffer bb = ByteBuffer.allocate(16);
+        bb.putLong(uuid.getMostSignificantBits());
+        bb.putLong(uuid.getLeastSignificantBits());
+        return bb.array();
+    }
 
-public class BlockActionInfo extends MaterialActionInfo implements ActionInfo {
-    public BlockActionInfo(Block block, ActionType type) {
-        super(block.getType(), block.getData(), type);
+    public static UUID fromBytes(byte[] array) {
+        ByteBuffer bb = ByteBuffer.wrap(array);
+        long most = bb.getLong();
+        long least = bb.getLong();
+        return new UUID(most, least);
     }
 }

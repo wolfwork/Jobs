@@ -16,14 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package me.zford.jobs;
+package me.zford.jobs.economy;
 
-import me.zford.jobs.commands.CommandSender;
+import org.bukkit.OfflinePlayer;
 
-public interface Player extends CommandSender {
-    public String getName();
-    public String getDisplayName();
-    public Location getLocation();
-    public void giveExp(int amount);
-    public boolean isOnline();
+
+public class VaultEconomy implements Economy {
+    private net.milkbowl.vault.economy.Economy vault;
+    public VaultEconomy(net.milkbowl.vault.economy.Economy vault) {
+        this.vault = vault;
+    }
+
+    @Override
+    public boolean depositPlayer(OfflinePlayer offlinePlayer, double money) {
+        return vault.depositPlayer(offlinePlayer, money).transactionSuccess();
+    }
+
+    @Override
+    public boolean withdrawPlayer(OfflinePlayer offlinePlayer, double money) {
+        return vault.withdrawPlayer(offlinePlayer, money).transactionSuccess();
+    }
+
+    @Override
+    public String format(double money) {
+        return vault.format(money);
+    }
 }

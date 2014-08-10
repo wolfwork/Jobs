@@ -16,31 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package me.zford.jobs.bukkit.actions;
-
-import org.bukkit.Material;
+package me.zford.jobs.actions;
 
 import me.zford.jobs.container.ActionInfo;
 import me.zford.jobs.container.ActionType;
-import me.zford.jobs.container.BaseActionInfo;
 
-public abstract class MaterialActionInfo extends BaseActionInfo implements ActionInfo {
-    private Material material;
-    private byte data;
-    public MaterialActionInfo(Material material, byte data, ActionType type) {
-        super(type);
-        this.material = material;
-        this.data = data;
+import org.bukkit.inventory.ItemStack;
+
+public class ItemActionInfo extends MaterialActionInfo implements ActionInfo {
+    public ItemActionInfo(ItemStack items, ActionType type) {
+        super(items.getType(), items.getData().getData(), type);
     }
-
-    @Override
-    public String getName() {
-        return material.toString();
-    }
-
-    @Override
-    public String getNameWithSub() {
-        return getName()+":"+data;
-    }
-
 }

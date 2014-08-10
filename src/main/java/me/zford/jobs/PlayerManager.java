@@ -24,6 +24,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+
 import me.zford.jobs.config.ConfigManager;
 import me.zford.jobs.container.Job;
 import me.zford.jobs.container.JobProgression;
@@ -40,13 +44,12 @@ public class PlayerManager {
      * Handles join of new player
      * @param playername
      */
-    public void playerJoin(String playername) {
+    public void playerJoin(Player player) {
         synchronized (players) {
-            JobsPlayer jPlayer = players.get(playername);
+            JobsPlayer jPlayer = players.get(player.getName().toLowerCase());
             if (jPlayer == null) {
-                jPlayer = new JobsPlayer(playername);
-                jPlayer.loadDAOData(Jobs.getJobsDAO().getAllJobs(jPlayer));
-                players.put(playername, jPlayer);
+                jPlayer = JobsPlayer.loadFromDao(Jobs.getJobsDAO(), player);
+                players.put(player.getName().toLowerCase(), jPlayer);
             }
             jPlayer.onConnect();
             jPlayer.reloadHonorific();
@@ -58,16 +61,16 @@ public class PlayerManager {
      * Handles player quit
      * @param playername
      */
-    public void playerQuit(String playername) {
+    public void playerQuit(Player player) {
         synchronized (players) {
             if (ConfigManager.getJobsConfiguration().saveOnDisconnect()) {
-                JobsPlayer jPlayer = players.remove(playername);
+                JobsPlayer jPlayer = players.remove(player.getName().toLowerCase());
                 if (jPlayer != null) {
                     jPlayer.save(Jobs.getJobsDAO());
                     jPlayer.onDisconnect();
                 }
             } else {
-                JobsPlayer jPlayer = players.get(playername);
+                JobsPlayer jPlayer = players.get(player.getName().toLowerCase());
                 if (jPlayer != null) {
                     jPlayer.onDisconnect();
                 }
@@ -115,13 +118,21 @@ public class PlayerManager {
      * @param player - the player who's job you're getting
      * @return the player job info of the player
      */
-    public JobsPlayer getJobsPlayer(String playername) {
-        JobsPlayer jPlayer = players.get(playername);
-        if (jPlayer == null) {
-            jPlayer = new JobsPlayer(playername);
-            jPlayer.loadDAOData(Jobs.getJobsDAO().getAllJobs(jPlayer));
-        }
-        return jPlayer;
+    public JobsPlayer getJobsPlayer(Player player) {
+        return players.get(player.getName().toLowerCase());
+    }
+    
+    /**
+     * Get the player job info for specific player
+     * @param player - the player who's job you're getting
+     * @return the player job info of the player
+     */
+    public JobsPlayer getJobsPlayerOffline(OfflinePlayer offlinePlayer) {
+        JobsPlayer jPlayer = players.get(offlinePlayer.getName().toLowerCase());
+        if (jPlayer != null)
+            return jPlayer;
+        
+        return JobsPlayer.loadFromDao(Jobs.getJobsDAO(), offlinePlayer);
     }
     
     /**
@@ -263,7 +274,7 @@ public class PlayerManager {
      * @param oldLevel
      */
     public void performLevelUp(JobsPlayer jPlayer, Job job, int oldLevel) {
-        Player player = Jobs.getServer().getPlayer(jPlayer.getName());
+        Player player = Bukkit.getServer().getPlayer(jPlayer.getPlayerUUID());
         JobProgression prog = jPlayer.getJobProgression(job);
         if (prog == null)
             return;
@@ -282,12 +293,12 @@ public class PlayerManager {
         if (player != null) {
             message = message.replace("%playername%", player.getDisplayName());
         } else {
-            message = message.replace("%playername%", jPlayer.getName());
+            message = message.replace("%playername%", jPlayer.getUserName());
         }
         message = message.replace("%joblevel%", ""+prog.getLevel());
         for (String line: message.split("\n")) {
             if (ConfigManager.getJobsConfiguration().isBroadcastingLevelups()) {
-                Jobs.getServer().broadcastMessage(line);
+                Bukkit.getServer().broadcastMessage(line);
             } else if (player != null) {
                 player.sendMessage(line);
             }
@@ -304,13 +315,13 @@ public class PlayerManager {
             if (player != null) {
                 message = message.replace("%playername%", player.getDisplayName());
             } else {
-                message = message.replace("%playername%", jPlayer.getName());
+                message = message.replace("%playername%", jPlayer.getUserName());
             }
             message = message.replace("%titlename%", newTitle.getChatColor() + newTitle.getName() + ChatColor.WHITE);
             message = message.replace("%jobname%", job.getChatColor() + job.getName() + ChatColor.WHITE);
             for (String line: message.split("\n")) {
                 if (ConfigManager.getJobsConfiguration().isBroadcastingLevelups()) {
-                    Jobs.getServer().broadcastMessage(line);
+                    Bukkit.getServer().broadcastMessage(line);
                 } else if (player != null) {
                     player.sendMessage(line);
                 }

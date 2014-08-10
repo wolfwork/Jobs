@@ -24,6 +24,9 @@ import java.util.List;
 import java.util.WeakHashMap;
 import java.util.logging.Logger;
 
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
 import me.zford.jobs.config.ConfigManager;
 import me.zford.jobs.container.ActionInfo;
 import me.zford.jobs.container.Job;
@@ -48,8 +51,6 @@ public class Jobs {
     private static List<Job> jobs = null;
     private static Job noneJob = null;
     private static WeakHashMap<Job, Integer> usedSlots = new WeakHashMap<Job, Integer>();
-    private static Server server;
-    private static TaskScheduler scheduler;
     private static BufferedEconomy economy;
     private static PermissionHandler permissionHandler;
 
@@ -165,8 +166,8 @@ public class Jobs {
         reload();
         
         // add all online players
-        for (Player online: getServer().getOnlinePlayers()){
-            Jobs.getPlayerManager().playerJoin(online.getName());
+        for (Player online: Bukkit.getServer().getOnlinePlayers()){
+            Jobs.getPlayerManager().playerJoin(online);
         }
     }
     
@@ -174,6 +175,20 @@ public class Jobs {
      * Reloads all data
      */
     public static void reload() {
+        if (saveTask != null) {
+            saveTask.shutdown();
+            saveTask = null;
+        }
+        
+        if (paymentThread != null) {
+            paymentThread.shutdown();
+            paymentThread = null;
+        }
+        
+        if (dao != null) {
+            dao.closeConnections();
+        }
+        
         ConfigManager.getJobsConfiguration().reload();
         Language.reload(ConfigManager.getJobsConfiguration().getLocale());
         ConfigManager.getJobConfig().reload();
@@ -183,16 +198,6 @@ public class Jobs {
         }
         pManager.reload();
         permissionHandler.registerPermissions();
-        
-        if (paymentThread != null) {
-            paymentThread.shutdown();
-            paymentThread = null;
-        }
-        
-        if (saveTask != null) {
-            saveTask.shutdown();
-            saveTask = null;
-        }
         
         // set the system to auto save
         if (ConfigManager.getJobsConfiguration().getSavePeriod() > 0) {
@@ -256,38 +261,6 @@ public class Jobs {
     }
     
     /**
-     * Sets the server
-     * @param s - the server
-     */
-    public static void setServer(Server s) {
-        server = s;
-    }
-    
-    /**
-     * Gets the server
-     * @return server
-     */
-    public static Server getServer() {
-        return server;
-    }
-    
-    /**
-     * Sets the task scheduler
-     * @param s - task scheduler
-     */
-    public static void setScheduler(TaskScheduler s) {
-        scheduler = s;
-    }
-    
-    /**
-     * Gets the task scheduler
-     * @return task scheduler
-     */
-    public static TaskScheduler getScheduler() {
-        return scheduler;
-    }
-    
-    /**
      * Sets the permission handler
      * @param h - the permission handler
      */
@@ -307,8 +280,8 @@ public class Jobs {
      * Sets the economy handler
      * @param eco - the economy handler
      */
-    public static void setEconomy(Economy eco) {
-        economy = new BufferedEconomy(eco);
+    public static void setEconomy(JobsPlugin plugin, Economy eco) {
+        economy = new BufferedEconomy(plugin, eco);
     }
     
     /**
@@ -345,7 +318,7 @@ public class Jobs {
                 if (income != null) {
                     Double exp = prog.getJob().getExperience(info, level, numjobs);
                     if (ConfigManager.getJobsConfiguration().addXpPlayer()) {
-                        Player player = getServer().getPlayer(jPlayer.getName());
+                        Player player = Bukkit.getServer().getPlayer(jPlayer.getPlayerUUID());
                         if (player != null) {
                             /*
                              * Minecraft experience is calculated in whole numbers only.

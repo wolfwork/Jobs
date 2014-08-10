@@ -16,10 +16,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package me.zford.jobs.commands;
+package me.zford.jobs.actions;
 
-public interface CommandSender {
-    public void sendMessage(String message);
-    public void sendMessage(String[] messages);
-    public boolean hasPermission(String name);
+import org.bukkit.Material;
+
+import me.zford.jobs.container.ActionInfo;
+import me.zford.jobs.container.ActionType;
+import me.zford.jobs.container.BaseActionInfo;
+
+public abstract class MaterialActionInfo extends BaseActionInfo implements ActionInfo {
+    private Material material;
+    private byte data;
+    public MaterialActionInfo(Material material, byte data, ActionType type) {
+        super(type);
+        this.material = material;
+        this.data = data;
+    }
+
+    @Override
+    public String getName() {
+        return material.toString();
+    }
+
+    @Override
+    public String getNameWithSub() {
+        return getName()+":"+data;
+    }
+
 }

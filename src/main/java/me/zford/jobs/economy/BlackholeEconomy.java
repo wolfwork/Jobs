@@ -18,14 +18,16 @@
 
 package me.zford.jobs.economy;
 
+import org.bukkit.OfflinePlayer;
+
 public class BlackholeEconomy implements Economy {
     @Override
-    public boolean depositPlayer(String playerName, double money) {
+    public boolean depositPlayer(OfflinePlayer offlinePlayer, double money) {
         return true;
     }
     
     @Override
-    public boolean withdrawPlayer(String playerName, double money) {
+    public boolean withdrawPlayer(OfflinePlayer offlinePlayer, double money) {
         return true;
     }
     

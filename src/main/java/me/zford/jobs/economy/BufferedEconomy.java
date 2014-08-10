@@ -21,18 +21,25 @@ package me.zford.jobs.economy;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import me.zford.jobs.Jobs;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+
+import me.zford.jobs.JobsPlugin;
+import me.zford.jobs.config.ConfigManager;
 import me.zford.jobs.container.JobsPlayer;
 import me.zford.jobs.tasks.BufferedPaymentTask;
 
 public class BufferedEconomy {
+    private JobsPlugin plugin;
     private Economy economy;
     private LinkedBlockingQueue<BufferedPayment> payments = new LinkedBlockingQueue<BufferedPayment>();
-    private final Map<String, BufferedPayment> paymentCache = Collections.synchronizedMap(new HashMap<String, BufferedPayment>());
+    private final Map<UUID, BufferedPayment> paymentCache = Collections.synchronizedMap(new HashMap<UUID, BufferedPayment>());
     
-    public BufferedEconomy (Economy economy) {
+    public BufferedEconomy (JobsPlugin plugin, Economy economy) {
+        this.plugin = plugin;
         this.economy = economy;
     }
     /**
@@ -43,7 +50,8 @@ public class BufferedEconomy {
     public void pay(JobsPlayer player, double amount) {
         if (amount == 0)
             return;
-        pay(new BufferedPayment(player.getName(), amount));
+        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(player.getUserName());
+        pay(new BufferedPayment(offlinePlayer, amount));
     }
     
     /**
@@ -69,18 +77,22 @@ public class BufferedEconomy {
             // combine all payments using paymentCache
             while (!payments.isEmpty()) {
                 BufferedPayment payment = payments.remove();
-                if (paymentCache.containsKey(payment.getPlayerName())) {
-                    BufferedPayment existing = paymentCache.get(payment.getPlayerName());
+                if (paymentCache.containsKey(payment.getOfflinePlayer().getUniqueId())) {
+                    BufferedPayment existing = paymentCache.get(payment.getOfflinePlayer().getUniqueId());
                     existing.setAmount(existing.getAmount() + payment.getAmount());
                 } else {
-                    paymentCache.put(payment.getPlayerName(), payment);
+                    paymentCache.put(payment.getOfflinePlayer().getUniqueId(), payment);
                 }
             }
             // Schedule all payments
             int i = 0;
             for (BufferedPayment payment : paymentCache.values()) {
                 i++;
-                Jobs.getScheduler().scheduleTask(new BufferedPaymentTask(this, economy, payment), i);
+                if (ConfigManager.getJobsConfiguration().isEconomyAsync()) {
+                    Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, new BufferedPaymentTask(this, economy, payment), i);
+                } else {
+                    Bukkit.getScheduler().runTaskLater(plugin, new BufferedPaymentTask(this, economy, payment), i);
+                }
             }
             // empty payment cache
             paymentCache.clear();
